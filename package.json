@@ -1,0 +1,10 @@
+{
+  "name": "mit-scraper",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "request": "~2.27.0",
+    "cheerio": "~0.12.4",
+    "underscore": "~1.5.2"
+  }
+}
