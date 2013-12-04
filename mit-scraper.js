@@ -4,6 +4,9 @@ var cheerio = require('cheerio');
 var _ = require('underscore');
 var courseLinks = [];
 
+// TODO: Create a directory for each course - w/ a file of metadata (uri etc.)
+//    A directory for each lecture with the file and the text
+ 
 
 request({
 	uri: "http://ocw.mit.edu/courses/audio-video-courses/"
@@ -22,9 +25,11 @@ request({
 			uri: courseLinks[2]
 		}, function(error, response, body) {
 			var videoLink;
+			var subject
 			var $ = cheerio.load(body);
 			if ($('ul.specialfeatures').text().indexOf('Transcript') != -1) {
 				videoLink = 'http://ocw.mit.edu/' + $('ul.specialfeatures').find('a')["0"].attribs.href;
+				subject = videoLink.split('/')[4];
 
 				request({
 					uri: 'http://ocw.mit.edu/courses/biology/7-012-introduction-to-biology-fall-2004/video-lectures/'
@@ -36,20 +41,11 @@ request({
 								uri: 'http://ocw.mit.edu/' + this['0'].attribs.href
 							}, function(error, response, body) {
 								var $ = cheerio.load(body);
-								$('.tabContent').each(function(){
-									if (this['0'].children.length > 40 ){
-										_.each(this['0'].children, function(list, i){
-											if (list.children && list.children[0]) {
-												console.log(list.children[0].data + '/n');
-											}
-										});
-									};
-								});
+								var transcript = '';
+								console.log('srt link: ', $('.tabContent').find('h3.subsubhead').last().next().children().children()['0'].attribs.href);
 							})
 						})
 					}
-
-					
 				});
 
 			}
