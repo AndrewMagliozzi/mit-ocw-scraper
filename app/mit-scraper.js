@@ -48,6 +48,7 @@ var getMITCourseMediaData = function(courseLink, callback) { // returns citation
 					uri: videoLink
 				}, function(error, response, body){
 					var $ = cheerio.load(body);
+					var fileName;
 					$('a.medialink').each(function () {
 						if (this['0'].name === 'a') { // make sure it's a link
 							data.lectureLink = 'http://ocw.mit.edu' + this['0'].attribs.href;
@@ -56,38 +57,32 @@ var getMITCourseMediaData = function(courseLink, callback) { // returns citation
 							data.course = this['0'].attribs.href.split('/')[3].split('-').join(' ');
 							data.subject = this['0'].attribs.href.split('/')[2].split('-').join(' ');
 							mediaData.push(data);
-							console.log(data)
-							var fileName = data.course + data.lecture + '.JSON';
+							fileName = data.course + data.lecture + '.JSON';
 							fs.writeFileSync(fileName, JSON.stringify(mediaData));
 							data = {}
-							fs.readFile(fileName, getMediaAndTranscript);
 						}
 					});
+					var obj = fs.readFileSync(fileName, 'utf8');
+					_.each(JSON.parse(obj), getMediaAndTranscript);
 				});
 			};
 		}
 	});
 };
 
-
-  // { lectureLink: 'http://ocw.mit.edu/courses/comparative-media-studies/cms-608-game-design-fall-2010/audio-lectures/lecture-33-ethics-in-games',
-  //   citation: 'Mavalvala, Nergis, Walter Lewin, and Wolfgang Ketterle. 8.03 Physics III: Vibrations and Waves, Fall 2004. (MIT OpenCourseWare: Massachusetts Institute of Technology), http://ocw.mit.edu/courses/physics/8-03-physics-iii-vibrations-and-waves-fall-2004 (Accessed). License: Creative Commons BY-NC-SA',
-  //   lectureStub: 'lecture-33-ethics-in-games',
-  //   courseStub: 'cms-608-game-design-fall-2010',
-  //   subjectStub: 'comparative-media-studies' }
-
 var getMediaAndTranscript = function (object) { // change object back to object
-	var JSON = toJSON(object)[0];
-
+	var json = object
 	request({
-		uri: object.lectureLink
+		uri: json.lectureLink
 	}, function(error, response, body) {
 		var $ = cheerio.load(body);
-		var fileName = JSON.course + JSON.lecture + '.JSON'
-		JSON.mediaLink = 'http://ocw.mit.edu/' + $('#media_tabs').children().last().children().first().next().next().children().last().children()['0'].attribs.href;
-		JSON.srtLink = 'http://ocw.mit.edu/' + $('#media_tabs').children().last().children().last().prev().children().children()['0'].attribs.href;
-		var fileName = JSON.course + JSON.lecture + '.JSON'
-		fs.writeFileSync(, JSON.stringify(JSON));
+		var fileName = object.course + object.lecture + '.JSON'
+		if ($('#media_tabs').children().last().children().first().next().next().children().last().children().length > 0) {
+			json.mediaLink = 'http://ocw.mit.edu/' + $('#media_tabs').children().last().children().first().next().next().children().last().children()['0'].attribs.href;
+			json.srtLink = 'http://ocw.mit.edu/' + $('#media_tabs').children().last().children().last().prev().children().children()['0'].attribs.href;
+			var fileName = object.course + object.lecture + '.JSON'
+			fs.writeFileSync(fileName, JSON.stringify(json));
+		}
 	});
 };
 
