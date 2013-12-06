@@ -60,6 +60,7 @@ var getMITCourseMediaData = function(courseLink, callback) { // returns citation
 							var fileName = data.course + data.lecture + '.JSON';
 							fs.writeFileSync(fileName, JSON.stringify(mediaData));
 							data = {}
+							fs.readFile(fileName, getMediaAndTranscript);
 						}
 					});
 				});
@@ -76,15 +77,17 @@ var getMITCourseMediaData = function(courseLink, callback) { // returns citation
   //   subjectStub: 'comparative-media-studies' }
 
 var getMediaAndTranscript = function (object) { // change object back to object
-	var JSON = object;
+	var JSON = toJSON(object)[0];
 
 	request({
 		uri: object.lectureLink
 	}, function(error, response, body) {
 		var $ = cheerio.load(body);
+		var fileName = JSON.course + JSON.lecture + '.JSON'
 		JSON.mediaLink = 'http://ocw.mit.edu/' + $('#media_tabs').children().last().children().first().next().next().children().last().children()['0'].attribs.href;
 		JSON.srtLink = 'http://ocw.mit.edu/' + $('#media_tabs').children().last().children().last().prev().children().children()['0'].attribs.href;
-		console.log(JSON);
+		var fileName = JSON.course + JSON.lecture + '.JSON'
+		fs.writeFileSync(, JSON.stringify(JSON));
 	});
 };
 
