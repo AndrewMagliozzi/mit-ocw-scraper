@@ -8,82 +8,80 @@ var JSONArray = [];
 //    A directory for each lecture with the file and the text
 
 var getAllMITCourseLinks = function(callback) { // returns all the course links from the MIT courese page
-
-	var courseLinks = [];
+	var courseData = [];
+	var data = {};
+	var course, subject, instructor, semester;
 
 	request({
-		uri: "http://ocw.mit.edu/courses/audio-video-courses/"
+		uri: "http://oyc.yale.edu/courses"
 		}, function(error, response, body) {
 			var $ = cheerio.load(body);
 
-			$('.preview').each(function(){
-				courseLinks.push('http://ocw.mit.edu/' + this['0'].attribs.href);
+			$('tr.odd, tr.even').each(function(){
+				data.subject = this.find('td.views-field-field-course-department-nid').text().substr(13).trim();
+				data.course = this.find('td.views-field-title').text().substr(13).trim();
+				data.instructor = this.find('td.views-field-field-course-professors-name-value').text().substr(13).trim();
+				data.semester = this.find('td.views-field-phpcode').text().substr(19).trim();
+				data.courseLink = 'http://oyc.yale.edu' + this.find('a')['0'].attribs.href;
+				courseData.push(data);
+				data = {};
 			});
-
-			courseLinks = _.uniq(courseLinks); // unique list of all course links
 			
-			_.each(courseLinks, function(element, index, list) {
-				callback(element, callback);
+			_.each(courseData, function(element, index, list) {
+				callback(element);
 			});
 	});
 
 };
 
 
-var getMITCourseMediaData = function(courseLink, callback) { // returns citation and media links from one coures page
-	var videoLink;
-	var data = {};
-	var mediaData = [];
+var getMITCourseMediaData = function(object) { // returns citation and media links from one coures page
+	var data = object;
+	var lectureArray = [];
+	var lectures = {};
 
 	request({
-		uri: courseLink // get a course page
+		uri: data.courseLink + '#sessions'
 	}, function(error, response, body) {
 		var $ = cheerio.load(body);
-		if ($('ul.specialfeatures').text().indexOf('Transcript') != -1) { // does the course have a transcript?
 
-			videoLink = 'http://ocw.mit.edu/' + $('ul.specialfeatures').find('a')["0"].attribs.href;
-			citation = $('.citeInner < p').first().text();
-			if (videoLink.indexOf('video-lectures') !== -1 || videoLink.indexOf('audio-lectures') !== -1 ) { // if it's a link to many lecture videos get them all
-				request({
-					uri: videoLink
-				}, function(error, response, body){
-					var $ = cheerio.load(body);
-					var fileName;
-					$('a.medialink').each(function () {
-						if (this['0'].name === 'a') { // make sure it's a link
-							data.lectureLink = 'http://ocw.mit.edu' + this['0'].attribs.href;
-							data.citation = citation;
-						  data.lecture = this['0'].attribs.href.split('/')[5].split('-').join(' ');
-							data.course = this['0'].attribs.href.split('/')[3].split('-').join(' ');
-							data.subject = this['0'].attribs.href.split('/')[2].split('-').join(' ');
-							mediaData.push(data);
-							fileName = data.course + data.lecture + '.JSON';
-							fs.writeFileSync(fileName, JSON.stringify(mediaData));
-							data = {}
-						}
-					});
-					var obj = fs.readFileSync(fileName, 'utf8');
-					_.each(JSON.parse(obj), getMediaAndTranscript);
-				});
-			};
-		}
+		$('tr.odd, tr.even').each(function(){
+			if (this.find('a')['0'].attribs.href.indexOf('/exam') === -1 ) {
+				lectures.lecture = this.find('td.views-field-field-session-display-number-value').text().trim();
+				lectures.title = this.find('a').text().trim();
+				lectures.link = 'http://oyc.yale.edu' + this.find('a')['0'].attribs.href;
+				lectureArray.push(lectures);
+				data.lectures = lectureArray;
+				lectures = {};
+			}
+		})
+		// console.log(data);
+		getMediaAndTranscript(data);
 	});
 };
 
 var getMediaAndTranscript = function (object) { // change object back to object
-	var json = object
-	request({
-		uri: json.lectureLink
-	}, function(error, response, body) {
-		var $ = cheerio.load(body);
-		var fileName = object.course + object.lecture + '.JSON'
-		if ($('#media_tabs').children().last().children().first().next().next().children().last().children().length > 0) {
-			json.mediaLink = 'http://ocw.mit.edu/' + $('#media_tabs').children().last().children().first().next().next().children().last().children()['0'].attribs.href;
-			json.srtLink = 'http://ocw.mit.edu/' + $('#media_tabs').children().last().children().last().prev().children().children()['0'].attribs.href;
-			var fileName = object.course + object.lecture + '.JSON'
-			fs.writeFileSync(fileName, JSON.stringify(json));
-		}
+	var json = object;
+
+	_.each(json.lectures, function(element, index, list){
+
+		request({
+			uri: element.link
+		}, function(error, response, body) {
+			var $ = cheerio.load(body);
+			if ($('#course_media_transcript').length !== 0) {
+				element.htmlTranscript = 'http://oyc.yale.edu' + $('#course_media_transcript').attr('onclick').toString().substr(40).slice(0, -65);
+				element.mp3Link = $('#course_media_audio')['0'].attribs.href;
+			} else {
+				element.htmlTranscript = 'no media available for this lecture';
+				element.mp3Link = 'no media available for this lecture';
+				console.log('No media available for ' + json.course, ': ', element.title);
+			}
+		});
 	});
+	fs.writeFileSync(json.course + '.json', JSON.stringify(json));
+	console.log('finished with ', json.course);
+
 };
 
 getAllMITCourseLinks(getMITCourseMediaData);
