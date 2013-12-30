@@ -89,17 +89,13 @@ var getMITCourseMediaData = function(deptObject) { // returns citation and media
 							data = {};
 						}
 					});
-					_.each(mediaData.courses, function(element, index, list) {
-						if (element.noteLinks && typeof element.noteLinks[0] !== 'function') {
-							console.log(element);
-							fs.writeFileSync(element.courseStub + '.json', JSON.stringify(element) + '\n', 'utf8');
-						}
-					});
-				});
-			};
-		});
+          fs.writeFileSync(mediaData.subject + '.json', JSON.stringify(mediaData) + '\n', 'utf8');
+        });
+      };
+    });
 
-	});
+  });
+  
 
 };
 
