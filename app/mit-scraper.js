@@ -89,7 +89,8 @@ var getMITCourseMediaData = function(deptObject) { // returns citation and media
 							data = {};
 						}
 					});
-          fs.writeFileSync(mediaData.subject + '.json', JSON.stringify(mediaData, null, 2) + '\n', 'utf8');
+          mediaFileName = mediaData.subject + '.json'
+          fs.writeFileSync(mediaFileName.replace('/', '%2f'), JSON.stringify(mediaData, null, 2) + '\n', 'utf8');
         });
       };
     });
